@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #4f46e5;
+  --color-brand-secondary: #06b6d4;
+  --color-brand-accent: #8b5cf6;
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #0f172a;
+  
+  --font-sans: 'Noto Sans KR', sans-serif;
+}
+
+@layer base {
+  body { 
+    font-family: var(--font-sans); 
+    scroll-behavior: smooth;
+    word-break: keep-all;
+    background-color: white;
+    color: #0f172a;
+  }
+}
+
+@layer components {
+  .hero-gradient { 
+    background: #0f172a;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-gradient::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    right: -10%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 70%);
+    filter: blur(80px);
+  }
+
+  .modern-card {
+    background: white;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+    box-shadow: 0 4px 20px -5px rgba(15, 23, 42, 0.05);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modern-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.1);
+    border-color: var(--color-brand-primary);
+  }
+
+  .skill-icon-box {
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    margin-bottom: 1.25rem;
+    background: #f1f5f9;
+    transition: all 0.3s;
+    color: var(--color-brand-primary);
+  }
+
+  .modern-card:hover .skill-icon-box {
+    background: var(--color-brand-primary);
+    color: white;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .text-gradient {
+    background: linear-gradient(to right, #4f46e5, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .dashboard-frame {
+    background: #ffffff;
+    border-radius: 2rem;
+    padding: 1.25rem;
+    box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.1);
+    border: 1px solid rgba(15, 23, 42, 0.05);
+  }
+
+  .section-tag {
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    color: var(--color-brand-primary);
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 1rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(79, 70, 229, 0.08);
+    border-radius: 6px;
+  }
+}
