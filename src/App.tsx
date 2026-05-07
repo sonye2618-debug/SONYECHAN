@@ -404,21 +404,6 @@ export default function App() {
       {/* Section: Work Experience Editorial */}
       <section id="work" className="py-40 bg-white">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="grid lg:grid-cols-2 gap-20 items-end mb-32 reveal">
-            <div>
-              <div className="pill-badge mb-6 inline-block bg-brand-sage/40">
-                <EditableText path="experience.tag" />
-              </div>
-              <h2 className="font-serif italic text-4xl md:text-5xl text-black leading-tight">
-                Empowering <span className="bg-brand-yellow px-4 rounded-full border border-black inline-block -rotate-2">ideas</span>, elevating brands
-              </h2>
-            </div>
-            <div className="max-w-md">
-              <p className="text-lg text-brand-primary/70 leading-relaxed font-medium">
-                At She Spark Media, we empower brands to tell their most impactful stories. We're here to amplify your voice and make sure it resonates. Every brand has a unique spark, and we're here to help yours shine brighter.
-              </p>
-            </div>
-          </div>
 
           <div className="grid gap-16">
             {Array.isArray(content.experience.items) && content.experience.items.map((item, idx) => (
