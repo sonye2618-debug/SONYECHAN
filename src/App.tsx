@@ -7,7 +7,8 @@ import { useEffect, useState, useRef, FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 import { 
   ComposedChart, 
@@ -25,6 +26,8 @@ import {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 enum OperationType {
   CREATE = 'create',
@@ -327,6 +330,69 @@ export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [visitorCompany, setVisitorCompany] = useState('');
   const [inputCompany, setInputCompany] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [feedbackName, setFeedbackName] = useState('');
+  const [feedbackCompany, setFeedbackCompany] = useState('');
+  const [feedbackContent, setFeedbackContent] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user && user.email === "sonye2618@gmail.com") {
+      const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setFeedbacks(docs);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'feedbacks');
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  const handleLogout = () => signOut(auth);
+
+  const handleSubmitFeedback = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!feedbackName.trim() || !feedbackContent.trim()) return;
+
+    setIsSubmittingFeedback(true);
+    try {
+      const path = 'feedbacks';
+      await addDoc(collection(db, path), {
+        name: feedbackName.trim(),
+        company: feedbackCompany.trim(),
+        content: feedbackContent.trim(),
+        createdAt: serverTimestamp()
+      });
+      setFeedbackSuccess(true);
+      setFeedbackName('');
+      setFeedbackCompany('');
+      setFeedbackContent('');
+      setTimeout(() => setFeedbackSuccess(false), 5000);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'feedbacks');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   // Check for existing authorization
   useEffect(() => {
@@ -1214,6 +1280,113 @@ export default function App() {
       </div>
     </section>
 
+    {/* Feedback Section */}
+    <section id="feedback" className="py-40 bg-white border-t border-black/5">
+      <div className="max-w-7xl mx-auto px-8">
+        <div className="grid lg:grid-cols-2 gap-20">
+          <div className="reveal">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="w-12 h-px bg-black/10"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">FEEDBACK</span>
+            </div>
+            <h3 className="font-serif italic text-4xl text-black leading-none mb-8">
+              Leave a Message
+            </h3>
+            <p className="text-xl text-brand-primary/60 font-serif italic max-w-md leading-relaxed">
+              포트폴리오를 검토해주셔서 감사합니다. 소중한 의견은 제 성장의 큰 밑거름이 됩니다.
+            </p>
+            
+            {user && user.email === "sonye2618@gmail.com" && (
+              <div className="mt-12 p-6 bg-brand-yellow/30 border border-brand-yellow rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-brand-rust">Admin Panel</span>
+                  <button onClick={() => setShowAdminPanel(!showAdminPanel)} className="text-[10px] font-black underline">
+                    {showAdminPanel ? "Close Panel" : "View Feedback List"}
+                  </button>
+                </div>
+                {showAdminPanel && (
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {feedbacks.length === 0 ? (
+                      <p className="text-sm font-medium opacity-50">No feedback yet.</p>
+                    ) : (
+                      feedbacks.map((f: any) => (
+                        <div key={f.id} className="bg-white p-4 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <div className="flex justify-between items-start mb-2">
+                             <span className="font-black text-xs text-black">{f.name} <span className="font-medium opacity-50">@{f.company || 'Unknown'}</span></span>
+                             <span className="text-[8px] opacity-40">{f.createdAt?.toDate?.()?.toLocaleString() || 'Recent'}</span>
+                          </div>
+                          <p className="text-sm text-brand-primary/80 leading-relaxed italic">"{f.content}"</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="reveal">
+            <form onSubmit={handleSubmitFeedback} className="window-frame bg-brand-cream/30 p-8 md:p-12">
+               <div className="window-header mb-8">
+                  <div className="dot-red"></div>
+                  <div className="dot-yellow"></div>
+                  <div className="dot-green"></div>
+                  <span className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-30">feedback_submission.form</span>
+               </div>
+               
+               <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Name</label>
+                      <input 
+                        type="text" 
+                        value={feedbackName}
+                        onChange={(e) => setFeedbackName(e.target.value)}
+                        placeholder="성함"
+                        className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Company (Optional)</label>
+                      <input 
+                        type="text" 
+                        value={feedbackCompany}
+                        onChange={(e) => setFeedbackCompany(e.target.value)}
+                        placeholder="회사명"
+                        className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Message</label>
+                    <textarea 
+                      value={feedbackContent}
+                      onChange={(e) => setFeedbackContent(e.target.value)}
+                      placeholder="피드백이나 협업 제안을 자유롭게 남겨주세요."
+                      className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium h-32 resize-none"
+                      required
+                    />
+                  </div>
+                  
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingFeedback}
+                    className={`w-full py-4 border border-black rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                      feedbackSuccess 
+                        ? 'bg-brand-yellow text-black' 
+                        : 'bg-black text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none'
+                    }`}
+                  >
+                    {isSubmittingFeedback ? "Sending..." : feedbackSuccess ? "Thank you!" : "Send Feedback"}
+                  </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
     {/* Contact Section Editorial */}
     <footer id="contact" className="py-40 bg-brand-sage relative overflow-hidden">
       <div className="absolute inset-0 grid-pattern opacity-10"></div>
@@ -1252,9 +1425,21 @@ export default function App() {
                </div>
             </div>
             
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mt-12">
-               <span>© 2026 SONYECHAN DESIGNER</span>
-               <span>ALL RIGHTS RESERVED</span>
+            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] mt-12 overflow-hidden">
+               <div className="opacity-30">
+                  <span>© 2026 SONYECHAN DESIGNER</span>
+                  <span className="ml-4">ALL RIGHTS RESERVED</span>
+               </div>
+               <div>
+                  {!user ? (
+                    <button onClick={handleLogin} className="opacity-10 hover:opacity-100 transition-opacity">ADMIN LOGIN</button>
+                  ) : (
+                    <div className="flex gap-4">
+                      <span className="opacity-30">WELCOME, {user.email}</span>
+                      <button onClick={handleLogout} className="opacity-30 hover:opacity-100 transition-opacity">LOGOUT</button>
+                    </div>
+                  )}
+               </div>
             </div>
           </div>
         </div>

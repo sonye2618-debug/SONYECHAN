@@ -20,12 +20,41 @@
         }
       },
       "required": ["companyName", "timestamp"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback from the portfolio.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the person giving feedback."
+        },
+        "company": {
+          "type": "string",
+          "description": "The company of the person giving feedback."
+        },
+        "content": {
+          "type": "string",
+          "description": "The feedback message text."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time when the feedback was submitted."
+        }
+      },
+      "required": ["name", "content", "createdAt"]
     }
   },
   "firestore": {
     "/visitors/{visitorId}": {
       "schema": "Visitor",
       "description": "A collection recording portfolio access by company name."
+    },
+    "/feedbacks/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Collection of feedback submitted by recruiters or visitors."
     }
   }
 }

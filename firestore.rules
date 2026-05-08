@@ -28,9 +28,25 @@ service cloud.firestore {
              (!('userAgent' in data) || (data.userAgent is string && data.userAgent.size() <= 500));
     }
 
+    function isValidFeedback(data) {
+      return data.keys().hasAll(['name', 'content', 'createdAt']) &&
+             data.keys().size() <= 4 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 2000 &&
+             data.createdAt == request.time &&
+             (!('company' in data) || (data.company is string && data.company.size() <= 100));
+    }
+
     // --- visitors collection ---
     match /visitors/{visitorId} {
       allow create: if isValidVisitor(incoming());
+      allow read, list: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // --- feedbacks collection ---
+    match /feedbacks/{feedbackId} {
+      allow create: if isValidFeedback(incoming());
       allow read, list: if isAdmin();
       allow update, delete: if isAdmin();
     }
