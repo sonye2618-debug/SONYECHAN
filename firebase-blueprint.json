@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "Visitor": {
+      "title": "Visitor",
+      "description": "Information about a visitor who entered the portfolio.",
+      "type": "object",
+      "properties": {
+        "companyName": {
+          "type": "string",
+          "description": "The name of the company entered by the visitor."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time when the visitor entered."
+        },
+        "userAgent": {
+          "type": "string",
+          "description": "The visitor's browser user agent."
+        }
+      },
+      "required": ["companyName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/visitors/{visitorId}": {
+      "schema": "Visitor",
+      "description": "A collection recording portfolio access by company name."
+    }
+  }
+}

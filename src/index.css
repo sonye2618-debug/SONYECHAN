@@ -12,7 +12,7 @@
   --color-bg-dark: #1a1a1a;
   
   --font-sans: 'Pretendard', sans-serif;
-  --font-serif: 'Instrument Serif', 'Noto Serif KR', serif;
+  --font-serif: 'Instrument Serif', 'Pretendard', serif;
 
   --animate-marquee: marquee 30s linear infinite;
 

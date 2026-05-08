@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
 import { 
   ComposedChart, 
   Bar, 
@@ -19,13 +22,54 @@ import {
   LabelList
 } from 'recharts';
 
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null, // Public access for logging
+      email: null,
+      emailVerified: null,
+      isAnonymous: true,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 // Default content for the portfolio
 const DEFAULT_CONTENT = {
   hero: {
     tag: "E-commerce MD",
     title1: "PORTFOLIO",
     title2: "",
-    desc: "안녕하세요 5년 차 MD 손예찬입니다."
+    desc: "변화의 파도 속에서 기술의 가치를 발견하고 최적의 성장을 설계하는 이커머스 MD입니다. 단순히 도구를 다루는 것을 넘어 시장의 본질적인 흐름을 읽고, 진솔한 고민과 응용력을 바탕으로 내일의 방향을 선명히 제시합니다."
   },
   project: {
     tag: "EXPERIENCE",
@@ -256,9 +300,44 @@ const DEFAULT_CONTENT = {
 
 export default function App() {
   const content = DEFAULT_CONTENT;
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [visitorCompany, setVisitorCompany] = useState('');
+  const [inputCompany, setInputCompany] = useState('');
+
+  // Check for existing authorization
+  useEffect(() => {
+    const saved = sessionStorage.getItem('portfolio_auth');
+    if (saved) {
+      setIsAuthorized(true);
+      setVisitorCompany(saved);
+    }
+  }, []);
+
+  const handleEnter = async (e: FormEvent) => {
+    e.preventDefault();
+    if (inputCompany.trim()) {
+      const company = inputCompany.trim();
+      
+      try {
+        await addDoc(collection(db, 'visitors'), {
+          companyName: company,
+          timestamp: serverTimestamp(),
+          userAgent: navigator.userAgent
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, 'visitors');
+      }
+
+      sessionStorage.setItem('portfolio_auth', company);
+      setVisitorCompany(company);
+      setIsAuthorized(true);
+    }
+  };
 
   // Set up reveal animation logic
   useEffect(() => {
+    if (!isAuthorized) return;
+    
     function reveal() {
       const reveals = document.querySelectorAll(".reveal");
       for (let i = 0; i < reveals.length; i++) {
@@ -280,7 +359,7 @@ export default function App() {
       window.removeEventListener("scroll", reveal);
       window.removeEventListener("load", reveal);
     };
-  }, []);
+  }, [isAuthorized]);
 
   const EditableText = ({ path, className, element: Element = 'span', style = {} }: any) => {
     const keys = path.split('.');
@@ -298,22 +377,76 @@ export default function App() {
 
   return (
     <div className="bg-brand-cream min-h-screen text-brand-primary">
-      {/* Editorial Header / Nav */}
+      {!isAuthorized ? (
+        <div className="fixed inset-0 z-[100] bg-brand-cream flex items-center justify-center p-8 overflow-y-auto">
+          <div className="absolute inset-0 grid-pattern opacity-20"></div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-xl w-full relative z-10"
+          >
+            <div className="text-center mb-12">
+               <div className="pill-badge mb-6 inline-block bg-brand-yellow/50 border-black/5">Entry Gate</div>
+               <h1 className="font-serif italic text-6xl md:text-7xl text-black leading-none mb-4">Welcome.</h1>
+               <p className="text-brand-primary/60 font-serif italic text-lg">포트폴리오 열람을 위해 회사명을 입력해주세요.</p>
+            </div>
+
+            <form onSubmit={handleEnter} className="window-frame bg-white p-8 md:p-12">
+               <div className="window-header mb-8">
+                  <div className="dot-red"></div>
+                  <div className="dot-yellow"></div>
+                  <div className="dot-green"></div>
+                  <span className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-30">authorization_required.key</span>
+               </div>
+               
+               <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Company Name</label>
+                    <input 
+                      type="text" 
+                      value={inputCompany}
+                      onChange={(e) => setInputCompany(e.target.value)}
+                      placeholder="회사명을 입력하세요"
+                      className="w-full bg-brand-cream/50 border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    className="w-full py-4 bg-brand-sage border border-black rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all active:scale-[0.98]"
+                  >
+                    Enter Portfolio
+                  </button>
+               </div>
+            </form>
+            
+            <div className="mt-12 text-center">
+               <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-20">© 2026 SONYECHAN DESIGNER</p>
+            </div>
+          </motion.div>
+
+          {/* Decorative gradients */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-yellow/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-sage/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+        </div>
+      ) : (
+        <>
+          {/* Welcome Toast (Optional) */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="fixed bottom-8 right-8 z-[60] bg-white border border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4"
+          >
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+             <p className="text-[11px] font-black uppercase tracking-widest">
+               Access Granted: <span className="text-brand-rust">{visitorCompany}</span>
+             </p>
+          </motion.div>
+
+          {/* Editorial Header / Nav */}
       <header className="fixed top-0 w-full z-50 px-8 py-6 flex justify-between items-center pointer-events-none">
-        <div className="bg-white px-4 py-2 border border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto cursor-pointer font-black text-xl tracking-tighter">
-          S.
-        </div>
-        <div className="bg-white border border-black rounded-full px-6 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-auto hidden md:flex items-center gap-8">
-           {['Work', 'Data', 'Success', 'Contact'].map((item) => (
-             <button 
-               key={item} 
-               onClick={() => document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })}
-               className="text-[11px] font-black uppercase tracking-widest hover:text-brand-rust transition-colors"
-             >
-               {item}
-             </button>
-           ))}
-        </div>
         <div className="bg-white p-3 border border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto cursor-pointer">
           <div className="w-6 h-0.5 bg-black mb-1.5"></div>
           <div className="w-6 h-0.5 bg-black"></div>
@@ -331,33 +464,15 @@ export default function App() {
             </div>
             
             <div className="relative text-center mb-12">
-              <h1 className="font-serif italic text-[10vw] md:text-[6vw] leading-[0.8] tracking-tighter text-black select-none pointer-events-none">
+              <h1 className="font-serif italic text-[12vw] md:text-[8vw] leading-[0.8] tracking-tighter text-black select-none pointer-events-none">
                 <motion.span 
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
                   className="block"
                 >
-                  Spark
+                  <EditableText path="hero.title1" />
                 </motion.span>
-                <div className="flex items-center justify-center -mt-4 md:-mt-8">
-                   <motion.span 
-                    initial={{ opacity: 0, x: -40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
-                    className="text-brand-primary/20 italic absolute blur-sm"
-                   >
-                     Change
-                   </motion.span>
-                   <motion.span 
-                    initial={{ opacity: 0, x: -40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
-                    className="relative z-10 text-brand-primary"
-                   >
-                     Change
-                   </motion.span>
-                </div>
               </h1>
               
               <div className="mt-12 max-w-xl mx-auto backdrop-blur-sm bg-white/30 p-8 rounded-3xl border border-white/50 text-center reveal">
@@ -404,6 +519,11 @@ export default function App() {
       {/* Section: Work Experience Editorial */}
       <section id="work" className="py-40 bg-white">
         <div className="max-w-7xl mx-auto px-8">
+          <div className="mb-20 text-center reveal">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-primary opacity-40">
+              Work History
+            </h2>
+          </div>
 
           <div className="grid gap-16">
             {Array.isArray(content.experience.items) && content.experience.items.map((item, idx) => (
@@ -416,7 +536,7 @@ export default function App() {
                     </p>
                   </div>
                   <div className="lg:w-2/4">
-                    <h3 className="font-serif italic text-4xl md:text-5xl text-black mb-4">
+                    <h3 className="font-serif italic text-3xl md:text-4xl text-black mb-4">
                       <EditableText path={`experience.items.${idx}.company`} />
                     </h3>
                     <p className="text-brand-rust font-bold uppercase tracking-widest text-xs mb-6">
@@ -475,8 +595,13 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-8 overflow-hidden">
           <div className="mb-32 reveal flex flex-col md:flex-row items-end gap-8">
             <div className="flex-1">
-              <div className="pill-badge mb-6 inline-block">Key Highlights</div>
-              <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-tight mb-4">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="w-12 h-px bg-brand-primary/20"></span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary/40">
+                  Key Highlights
+                </span>
+              </div>
+              <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-tight mb-4">
                 <EditableText path="tricycleProject.title" />
               </h3>
             </div>
@@ -542,10 +667,13 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-20">
             <div className="reveal">
-              <div className="pill-badge mb-6 inline-block bg-brand-yellow">
-                <EditableText path="data.tag" />
+              <div className="flex items-center gap-4 mb-6">
+                <span className="w-12 h-px bg-brand-yellow"></span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary/40">
+                  <EditableText path="data.tag" />
+                </span>
               </div>
-              <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-[0.9] mb-8">
+              <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-[0.9] mb-8">
                 <EditableText path="data.title" />
               </h3>
               <p className="text-xl text-brand-primary/60 italic font-serif mb-12">
@@ -609,10 +737,14 @@ export default function App() {
 
         <div className="max-w-7xl mx-auto px-8 relative z-10">
           <div className="text-center mb-32 reveal">
-            <div className="pill-badge mb-6 inline-block bg-white/10 border-white/20 text-white">
-              <EditableText path="improvement.tag" />
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <span className="w-12 h-px bg-white/20"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+                <EditableText path="improvement.tag" />
+              </span>
+              <span className="w-12 h-px bg-white/20"></span>
             </div>
-            <h3 className="font-serif italic text-5xl md:text-6xl text-white leading-none">
+            <h3 className="font-serif italic text-4xl md:text-5xl text-white leading-none">
               <EditableText path="improvement.title" />
             </h3>
             <p className="text-xl text-white/50 mt-8 italic font-serif">
@@ -697,8 +829,8 @@ export default function App() {
 
 
       {/* COMPANY SECTION 2: HOWON PLANET (2021 - 2022) Editorial */}
-      <div className="bg-brand-yellow py-12 border-y border-black">
-        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row-reverse justify-between items-center gap-6">
+      <div className="bg-white py-12 border-y border-black">
+        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-6">
              <div className="pill-badge bg-brand-primary/10 border-brand-primary shrink-0">
               Phase 01
@@ -718,10 +850,13 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-20 mb-32 reveal">
             <div>
-               <div className="pill-badge mb-6 inline-block bg-brand-sage">
-                <EditableText path="project.tag" />
+              <div className="flex items-center gap-4 mb-6">
+                <span className="w-12 h-px bg-black/10"></span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
+                  <EditableText path="project.tag" />
+                </span>
               </div>
-              <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-tight">
+              <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-tight">
                 <EditableText path="project.title" />
               </h3>
             </div>
@@ -732,14 +867,14 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 mb-20 reveal">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20 reveal">
             {Array.isArray(content.project.highlights) && content.project.highlights.map((item: any, idx: number) => (
-              <div key={idx} className="p-12 bg-brand-cream border border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center relative group overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 font-serif italic text-4xl text-black/5">0{idx + 1}</div>
-                <p className="text-[10px] uppercase font-black text-brand-rust mb-4 tracking-[0.2em]">
+              <div key={idx} className="p-8 bg-brand-sage border border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center relative group overflow-hidden transition-transform hover:-translate-y-1">
+                <div className="absolute top-0 right-0 p-3 font-serif italic text-3xl text-black/5">0{idx + 1}</div>
+                <p className="text-[10px] uppercase font-black text-brand-primary mb-3 tracking-[0.2em]">
                   <EditableText path={`project.highlights.${idx}.label`} />
                 </p>
-                <p className="text-3xl font-serif italic text-black leading-tight">
+                <p className="text-2xl font-serif italic text-black leading-tight">
                   <EditableText path={`project.highlights.${idx}.value`} />
                 </p>
               </div>
@@ -799,18 +934,21 @@ export default function App() {
       </section>
     <div className="bg-brand-yellow pt-40 pb-20 text-center border-y border-black">
        <span className="pill-badge mb-6 inline-block bg-white/80 border-black/5">General Competency</span>
-       <h2 className="font-serif italic text-5xl md:text-6xl text-black leading-none">운영 시스템 및 채널 역량</h2>
+       <h2 className="font-serif italic text-4xl md:text-5xl text-black leading-none">운영 시스템 및 채널 역량</h2>
     </div>
 
     {/* Section: Sabangnet Mastery Editorial */}
-    <section id="work" className="py-40 bg-brand-cream overflow-hidden relative">
+    <section id="sabangnet" className="py-40 bg-brand-cream overflow-hidden relative">
       <div className="max-w-7xl mx-auto px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-20 items-end mb-32 reveal">
           <div>
-            <div className="pill-badge mb-6 inline-block bg-brand-sage/40">
-              <EditableText path="sabangnet.tag" />
+            <div className="flex items-center gap-4 mb-6">
+              <span className="w-12 h-px bg-brand-sage"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary/40">
+                <EditableText path="sabangnet.tag" />
+              </span>
             </div>
-            <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-[0.9]">
+            <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-[0.9]">
               <EditableText path="sabangnet.title" />
             </h3>
           </div>
@@ -851,7 +989,7 @@ export default function App() {
             <div className="pill-badge mb-6 inline-block bg-brand-yellow">
               <EditableText path="channels.tag" />
             </div>
-            <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-[0.9]">
+            <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-[0.9]">
               <EditableText path="channels.title" />
             </h3>
           </div>
@@ -873,11 +1011,11 @@ export default function App() {
         </div>
 
         <div className="reveal">
-          <div className="window-frame bg-brand-cream p-12 flex items-center justify-center">
+          <div className="window-frame bg-white p-8 md:p-16 flex items-center justify-center">
             <img 
               src={(content.channels as any).image} 
               alt="주요 담당 채널 로고 모음" 
-              className="max-w-full h-auto mix-blend-multiply opacity-80"
+              className="max-w-2xl w-full h-auto mix-blend-multiply opacity-90"
               referrerPolicy="no-referrer"
             />
           </div>
@@ -890,10 +1028,13 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-8">
         <div className="grid lg:grid-cols-2 gap-20 mb-32 reveal">
           <div>
-            <div className="pill-badge mb-6 inline-block bg-white/80">
-              <EditableText path="promotionProject.tag" />
+            <div className="flex items-center gap-4 mb-6">
+              <span className="w-12 h-px bg-black/10"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
+                <EditableText path="promotionProject.tag" />
+              </span>
             </div>
-            <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-[0.9]">
+            <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-[0.9]">
               <EditableText path="promotionProject.title" />
             </h3>
           </div>
@@ -944,10 +1085,7 @@ export default function App() {
     <section id="vision" className="py-40 bg-white">
       <div className="max-w-7xl mx-auto px-8">
         <div className="text-center mb-32 reveal">
-           <div className="pill-badge mb-6 inline-block bg-brand-sage">
-            <EditableText path="vision.tag" />
-          </div>
-          <h3 className="font-serif italic text-5xl md:text-[6.5vw] text-black leading-none">
+          <h3 className="font-serif italic text-4xl md:text-[5vw] text-black leading-none">
             <EditableText path="vision.title" />
           </h3>
         </div>
@@ -979,7 +1117,7 @@ export default function App() {
             <div className="pill-badge mb-6 inline-block bg-white/80">
               <EditableText path="contact.tag" />
             </div>
-            <h3 className="font-serif italic text-4xl md:text-5xl text-black leading-none mb-12">
+            <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-none mb-12">
               <EditableText path="contact.title" />
             </h3>
             <p className="text-2xl text-brand-primary/70 font-serif italic max-w-md leading-relaxed mb-12">
@@ -992,13 +1130,13 @@ export default function App() {
                <div className="space-y-8">
                  <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-brand-rust block mb-2">Phone</span>
-                    <p className="text-2xl font-black text-black">
-                      <EditableText path="contact.phone" />
+                    <p className="text-xl md:text-2xl font-sans font-black text-black">
+                      010-5038-4033
                     </p>
                  </div>
                  <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-brand-rust block mb-2">Email</span>
-                    <p className="text-2xl font-black text-black">
+                    <p className="text-xl md:text-2xl font-sans font-black text-black">
                       <EditableText path="contact.email" />
                     </p>
                  </div>
@@ -1006,13 +1144,15 @@ export default function App() {
             </div>
             
             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mt-12">
-               <span>© 2026 SHE SPARK MEDIA</span>
-               <span>CURATED PORTFOLIO</span>
+               <span>© 2026 SONYECHAN DESIGNER</span>
+               <span>ALL RIGHTS RESERVED</span>
             </div>
           </div>
         </div>
       </div>
     </footer>
-    </div>
-  );
+    </>
+    )}
+  </div>
+);
 }

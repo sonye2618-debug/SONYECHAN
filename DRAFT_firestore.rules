@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == "sonye2618@gmail.com" && 
+        request.auth.token.email_verified == true
+      ); 
+    }
+    function incoming() { return request.resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // --- Visitor Validation ---
+    function isValidVisitor(data) {
+      return data.keys().hasAll(['companyName', 'timestamp']) &&
+             data.keys().size() <= 3 && // Allow companyName, timestamp, and optional userAgent
+             data.companyName is string && 
+             data.companyName.size() > 0 && 
+             data.companyName.size() <= 200 &&
+             data.timestamp == request.time &&
+             (!('userAgent' in data) || (data.userAgent is string && data.userAgent.size() <= 500));
+    }
+
+    // --- visitors collection ---
+    match /visitors/{visitorId} {
+      // Public can create logs 
+      allow create: if isValidVisitor(incoming());
+      
+      // Only admin can read the logs
+      allow read, list: if isAdmin();
+      
+      // Updates and Deletes are generally forbidden after creation
+      allow update, delete: if isAdmin();
+    }
+  }
+}
