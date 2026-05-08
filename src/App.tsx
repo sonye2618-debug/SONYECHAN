@@ -69,7 +69,7 @@ const DEFAULT_CONTENT = {
     tag: "E-commerce MD",
     title1: "PORTFOLIO",
     title2: "",
-    desc: "변화의 파도 속에서 기술의 가치를 발견하고 최적의 성장을 설계하는 이커머스 MD입니다. 단순히 도구를 다루는 것을 넘어 시장의 본질적인 흐름을 읽고, 진솔한 고민과 응용력을 바탕으로 내일의 방향을 선명히 제시합니다."
+    desc: "안녕하세요 5년차 온라인MD 손예찬입니다. 데이터 속에서 고객의 니즈를 발견하고, 긴밀한 소통으로 최적의 상품을 제안해 매출을 극대화하겠습니다."
   },
   project: {
     tag: "EXPERIENCE",
@@ -275,6 +275,30 @@ const DEFAULT_CONTENT = {
   vision: {
     tag: "Future Vision",
     title: "입사 후 포부",
+    mainVision: "데이터로 검증하고 성과로 보여드리겠습니다.",
+    mainVisionDesc: "단순한 상품 운영을 넘어, 데이터 분석을 통한 정교한 타겟팅과 유기적인 협업으로 브랜드의 시장 점유율을 극대화하겠습니다. 단기적으로는 채널별 운영 효율화를, 장기적으로는 고객의 구매 습관을 설계하는 독보적인 MD로 성장하는 것이 목표입니다.",
+    strategies: [
+      { 
+        label: "PRODUCT", 
+        title: "상품 관리", 
+        desc: "판매 데이터의 다각도 분석을 통해 잠재적 니즈를 발굴하고, 트렌드 변화에 기민하게 대응하는 상품 기획을 추진하겠습니다." 
+      },
+      { 
+        label: "PROMOTION", 
+        title: "프로모션", 
+        desc: "상품의 특성과 시즌별 고객 접점을 분석하여 적시적소에 맞는 프로모션을 기획, 일회성 구매가 아닌 브랜드 로열티로 이어지는 캠페인을 운영하겠습니다." 
+      },
+      { 
+        label: "PRICE", 
+        title: "프라이싱", 
+        desc: "단순한 저가 경쟁에서 벗어나, 고객의 구매 패턴과 카테고리별 선호 가격대를 정밀 분석하여 구매 전환율이 가장 높은 최적 가격 체계를 구축하겠습니다." 
+      },
+      { 
+        label: "PLACE", 
+        title: "유통 및 서비스", 
+        desc: "행동 데이터 기반의 최적 구매 여정 제안 및 유관 부서와의 긴밀한 협업으로 최상의 경험을 서비스하겠습니다." 
+      }
+    ],
     items: [
       { 
         step: "STEP 1", 
@@ -464,16 +488,26 @@ export default function App() {
             </div>
             
             <div className="relative text-center mb-12">
-              <h1 className="font-serif italic text-[12vw] md:text-[8vw] leading-[0.8] tracking-tighter text-black select-none pointer-events-none">
-                <motion.span 
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
-                  className="block"
-                >
-                  <EditableText path="hero.title1" />
-                </motion.span>
-              </h1>
+              <div className="relative inline-block">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] opacity-[0.03] pointer-events-none">
+                   <div className="w-full h-full relative">
+                      <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-brand-rust rounded-tl-full border-r border-b border-brand-cream"></div>
+                      <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-brand-rust rounded-tr-full border-l border-b border-brand-cream"></div>
+                      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-brand-rust rounded-bl-full border-r border-t border-brand-cream"></div>
+                      <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-brand-rust rounded-br-full border-l border-t border-brand-cream"></div>
+                   </div>
+                </div>
+                <h1 className="font-serif italic text-[12vw] md:text-[8vw] leading-[0.8] tracking-tighter text-black select-none pointer-events-none relative z-10">
+                  <motion.span 
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="block"
+                  >
+                    <EditableText path="hero.title1" />
+                  </motion.span>
+                </h1>
+              </div>
               
               <div className="mt-12 max-w-xl mx-auto backdrop-blur-sm bg-white/30 p-8 rounded-3xl border border-white/50 text-center reveal">
                 <p className="text-xl md:text-2xl font-serif italic text-brand-primary/80 mb-8 leading-relaxed">
@@ -1010,14 +1044,22 @@ export default function App() {
           </div>
         </div>
 
-        <div className="reveal">
-          <div className="window-frame bg-white p-8 md:p-16 flex items-center justify-center">
-            <img 
-              src={(content.channels as any).image} 
-              alt="주요 담당 채널 로고 모음" 
-              className="max-w-2xl w-full h-auto mix-blend-multiply opacity-90"
-              referrerPolicy="no-referrer"
-            />
+        <div className="reveal max-w-4xl mx-auto">
+          <div className="window-frame bg-white">
+            <div className="window-header">
+              <div className="dot-red"></div>
+              <div className="dot-yellow"></div>
+              <div className="dot-green"></div>
+              <span className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-30">channel_distribution.png</span>
+            </div>
+            <div className="p-8 md:p-16 flex items-center justify-center">
+              <img 
+                src={(content.channels as any).image} 
+                alt="주요 담당 채널 로고 모음" 
+                className="w-full h-auto mix-blend-multiply opacity-90"
+                referrerPolicy="no-referrer"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1082,24 +1124,88 @@ export default function App() {
     </section>
 
     {/* Final Vision Section Editorial */}
-    <section id="vision" className="py-40 bg-white">
+    <section id="vision" className="py-40 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-8">
-        <div className="text-center mb-32 reveal">
-          <h3 className="font-serif italic text-4xl md:text-[5vw] text-black leading-none">
+        <div className="mb-32 reveal">
+          <div className="flex items-center gap-4 mb-8">
+            <span className="w-12 h-px bg-black/10"></span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
+              <EditableText path="vision.tag" />
+            </span>
+          </div>
+          <h3 className="font-serif italic text-4xl md:text-[5vw] text-black leading-none mb-12">
             <EditableText path="vision.title" />
           </h3>
+          
+          <div className="window-frame bg-brand-sage/10 p-12 md:p-20 relative">
+             <div className="relative z-10">
+                <h4 className="font-serif italic text-3xl md:text-5xl text-black mb-8 leading-tight max-w-4xl">
+                  "<EditableText path="vision.mainVision" />"
+                </h4>
+                <p className="text-xl text-brand-primary/60 font-serif italic max-w-2xl leading-relaxed">
+                  <EditableText path="vision.mainVisionDesc" />
+                </p>
+             </div>
+             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-yellow/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-12 reveal">
+        {/* 4P Strategy Grid with Central Diagram */}
+        <div className="relative mb-32 reveal">
+          <div className="grid md:grid-cols-2 gap-px bg-black/10 border border-black/10">
+             {Array.isArray(content.vision.strategies) && content.vision.strategies.map((strategy, idx) => (
+               <div key={idx} className={`bg-white p-12 group hover:bg-brand-yellow transition-colors ${idx % 2 === 0 ? 'md:text-right md:pr-40' : 'md:text-left md:pl-40'} py-20`}>
+                  <span className="text-sm font-black uppercase tracking-[0.4em] text-brand-rust mb-4 block">
+                    <EditableText path={`vision.strategies.${idx}.label`} />
+                  </span>
+                  <h5 className="font-serif italic text-4xl text-black mb-6">
+                    <EditableText path={`vision.strategies.${idx}.title`} />
+                  </h5>
+                  <p className="text-lg text-brand-primary/60 font-medium leading-relaxed max-w-sm mx-auto md:mx-0">
+                     <EditableText path={`vision.strategies.${idx}.desc`} />
+                  </p>
+               </div>
+             ))}
+          </div>
+
+          {/* Central 4P Circular Diagram (CSS/SVG Version to match image) */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center justify-center w-64 h-64 z-20 pointer-events-none">
+             <div className="relative w-full h-full p-2 bg-white rounded-full shadow-2xl border-4 border-brand-cream">
+                <div className="absolute inset-0 flex items-center justify-center">
+                   <div className="w-full h-full relative">
+                      <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#f15a24] rounded-tl-full border-r-[1.5px] border-b-[1.5px] border-white flex items-center justify-center">
+                         <span className="text-[9px] font-black text-white">PRODUCT</span>
+                      </div>
+                      <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-[#f15a24] rounded-tr-full border-l-[1.5px] border-b-[1.5px] border-white flex items-center justify-center">
+                         <span className="text-[9px] font-black text-white">PROMOTION</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-[#f15a24] rounded-bl-full border-r-[1.5px] border-t-[1.5px] border-white flex items-center justify-center">
+                         <span className="text-[9px] font-black text-white">PRICE</span>
+                      </div>
+                      <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#f15a24] rounded-br-full border-l-[1.5px] border-t-[1.5px] border-white flex items-center justify-center">
+                         <span className="text-[9px] font-black text-white text-center px-1">PLACE</span>
+                      </div>
+                   </div>
+                </div>
+                {/* Interaction Core */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center border-4 border-[#f15a24] shadow-inner z-30">
+                   <span className="text-3xl font-black text-[#f15a24] leading-none mb-1">4P</span>
+                   <div className="w-8 h-0.5 bg-[#f15a24]/20"></div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-12 reveal border-t-2 border-black pt-20">
           {Array.isArray(content.vision.items) && content.vision.items.map((item, idx) => (
-            <div key={idx} className="group border-t-2 border-black pt-12">
+            <div key={idx} className="group">
                <span className="text-brand-rust font-black text-xs uppercase tracking-widest mb-4 block">
                 <EditableText path={`vision.items.${idx}.step`} /> ● <EditableText path={`vision.items.${idx}.label`} />
                </span>
-               <h4 className="font-serif italic text-4xl text-black mb-6 group-hover:text-brand-rust transition-colors">
+               <h4 className="font-serif italic text-3xl text-black mb-6 group-hover:text-brand-rust transition-colors">
                 <EditableText path={`vision.items.${idx}.title`} />
                </h4>
-               <p className="text-brand-primary/60 font-medium leading-relaxed">
+               <p className="text-brand-primary/60 font-medium text-sm leading-relaxed">
                 <EditableText path={`vision.items.${idx}.desc`} />
                </p>
             </div>
@@ -1114,8 +1220,11 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-20">
           <div>
-            <div className="pill-badge mb-6 inline-block bg-white/80">
-              <EditableText path="contact.tag" />
+            <div className="flex items-center gap-4 mb-6">
+              <span className="w-12 h-px bg-black/10"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
+                <EditableText path="contact.tag" />
+              </span>
             </div>
             <h3 className="font-serif italic text-3xl md:text-4xl text-black leading-none mb-12">
               <EditableText path="contact.title" />
