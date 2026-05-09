@@ -44,7 +44,7 @@
           "description": "The time when the feedback was submitted."
         }
       },
-      "required": ["name", "content", "createdAt"]
+      "required": ["content", "createdAt"]
     }
   },
   "firestore": {

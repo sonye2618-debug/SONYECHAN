@@ -29,11 +29,11 @@ service cloud.firestore {
     }
 
     function isValidFeedback(data) {
-      return data.keys().hasAll(['name', 'content', 'createdAt']) &&
+      return data.keys().hasAll(['content', 'createdAt']) &&
              data.keys().size() <= 4 &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.content is string && data.content.size() > 0 && data.content.size() <= 2000 &&
              data.createdAt == request.time &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
              (!('company' in data) || (data.company is string && data.company.size() <= 100));
     }
 

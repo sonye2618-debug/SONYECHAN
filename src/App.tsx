@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useRef, FormEvent } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ArrowUp } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -338,6 +338,7 @@ export default function App() {
   const [feedbackContent, setFeedbackContent] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -384,14 +385,14 @@ export default function App() {
 
   const handleSubmitFeedback = async (e: FormEvent) => {
     e.preventDefault();
-    if (!feedbackName.trim() || !feedbackContent.trim()) return;
+    if (!feedbackContent.trim()) return;
 
     setIsSubmittingFeedback(true);
     try {
       const path = 'feedbacks';
       await addDoc(collection(db, path), {
-        name: feedbackName.trim(),
-        company: feedbackCompany.trim(),
+        name: feedbackName.trim() || 'Anonymous',
+        company: feedbackCompany.trim() || '',
         content: feedbackContent.trim(),
         createdAt: serverTimestamp()
       });
@@ -1296,107 +1297,140 @@ export default function App() {
     {/* Feedback Section */}
     <section id="feedback" className="py-40 bg-white border-t border-black/5">
       <div className="max-w-7xl mx-auto px-8">
-        <div className="grid lg:grid-cols-2 gap-20">
-          <div className="reveal">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="w-12 h-px bg-black/10"></span>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">FEEDBACK</span>
-            </div>
-            <h3 className="font-serif italic text-4xl text-black leading-none mb-8">
-              Leave a Message
-            </h3>
-            <p className="text-xl text-brand-primary/60 font-serif italic max-w-md leading-relaxed">
-              포트폴리오를 검토해주셔서 감사합니다. 소중한 의견은 제 성장의 큰 밑거름이 됩니다.
-            </p>
-            
-            {user && user.email === "sonye2618@gmail.com" && (
-              <div className="mt-12 p-6 bg-brand-yellow/30 border border-brand-yellow rounded-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-brand-rust">Admin Panel</span>
-                  <button onClick={() => setShowAdminPanel(!showAdminPanel)} className="text-[10px] font-black underline">
-                    {showAdminPanel ? "Close Panel" : "View Feedback List"}
-                  </button>
-                </div>
-                {showAdminPanel && (
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {feedbacks.length === 0 ? (
-                      <p className="text-sm font-medium opacity-50">No feedback yet.</p>
-                    ) : (
-                      feedbacks.map((f: any) => (
-                        <div key={f.id} className="bg-white p-4 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          <div className="flex justify-between items-start mb-2">
-                             <span className="font-black text-xs text-black">{f.name} <span className="font-medium opacity-50">@{f.company || 'Unknown'}</span></span>
-                             <span className="text-[8px] opacity-40">{f.createdAt?.toDate?.()?.toLocaleString() || 'Recent'}</span>
-                          </div>
-                          <p className="text-sm text-brand-primary/80 leading-relaxed italic">"{f.content}"</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <div className="flex justify-center items-center gap-4 mb-6">
+            <span className="w-12 h-px bg-black/10"></span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">FEEDBACK</span>
+            <span className="w-12 h-px bg-black/10"></span>
           </div>
+          <h3 className="font-serif italic text-4xl text-black leading-none mb-8">
+            Leave a Message
+          </h3>
+          <p className="text-xl text-brand-primary/60 font-serif italic mb-10">
+            포트폴리오를 검토해주셔서 감사합니다. 소중한 의견을 남겨주시면 큰 기쁨이 됩니다.
+          </p>
 
-          <div className="reveal">
-            <form onSubmit={handleSubmitFeedback} className="window-frame bg-brand-cream/30 p-8 md:p-12">
-               <div className="window-header mb-8">
-                  <div className="dot-red"></div>
-                  <div className="dot-yellow"></div>
-                  <div className="dot-green"></div>
-                  <span className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-30">feedback_submission.form</span>
-               </div>
-               
-               <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Name</label>
-                      <input 
-                        type="text" 
-                        value={feedbackName}
-                        onChange={(e) => setFeedbackName(e.target.value)}
-                        placeholder="성함"
-                        className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Company (Optional)</label>
-                      <input 
-                        type="text" 
-                        value={feedbackCompany}
-                        onChange={(e) => setFeedbackCompany(e.target.value)}
-                        placeholder="회사명"
-                        className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Message</label>
-                    <textarea 
-                      value={feedbackContent}
-                      onChange={(e) => setFeedbackContent(e.target.value)}
-                      placeholder="피드백이나 협업 제안을 자유롭게 남겨주세요."
-                      className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium h-32 resize-none"
-                      required
-                    />
-                  </div>
-                  
-                  <button 
-                    type="submit"
-                    disabled={isSubmittingFeedback}
-                    className={`w-full py-4 border border-black rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                      feedbackSuccess 
-                        ? 'bg-brand-yellow text-black' 
-                        : 'bg-black text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none'
-                    }`}
-                  >
-                    {isSubmittingFeedback ? "Sending..." : feedbackSuccess ? "Thank you!" : "Send Feedback"}
-                  </button>
-               </div>
-            </form>
-          </div>
+          <button 
+            onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
+            className="group relative inline-flex items-center gap-4 px-10 py-5 bg-black text-white overflow-hidden rounded-full transition-all hover:pr-14 active:scale-95"
+          >
+            <span className="font-black text-xs uppercase tracking-[0.2em] relative z-10">
+              {isFeedbackOpen ? "접기" : "피드백 남기기"}
+            </span>
+            <div className={`transition-transform duration-300 ${isFeedbackOpen ? 'rotate-180' : ''}`}>
+              <ChevronDown size={14} className="relative z-10" />
+            </div>
+            <div className="absolute inset-0 bg-brand-rust translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+          </button>
         </div>
+
+        <AnimatePresence>
+          {isFeedbackOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="grid lg:grid-cols-2 gap-20 py-10">
+                <div className="reveal">
+                  <h4 className="text-2xl font-serif italic text-black mb-6">Message for Candidate</h4>
+                  <p className="text-lg text-brand-primary/60 font-sans leading-relaxed mb-8">
+                    데이터 기반의 전략적 사고와 실행력을 바탕으로 귀사의 성장에 기여하고 싶습니다.
+                    작은 조언이라도 달게 듣고 더 발전하는 MD가 되겠습니다.
+                  </p>
+                  
+                  {user && user.email === "sonye2618@gmail.com" && (
+                    <div className="mt-8 p-6 bg-brand-yellow/30 border border-brand-yellow rounded-2xl">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-rust">Admin Panel</span>
+                        <button onClick={() => setShowAdminPanel(!showAdminPanel)} className="text-[10px] font-black underline">
+                          {showAdminPanel ? "Close Panel" : "View Feedback List"}
+                        </button>
+                      </div>
+                      {showAdminPanel && (
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                          {feedbacks.length === 0 ? (
+                            <p className="text-sm font-medium opacity-50">No feedback yet.</p>
+                          ) : (
+                            feedbacks.map((f: any) => (
+                              <div key={f.id} className="bg-white p-4 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                <div className="flex justify-between items-start mb-2">
+                                   <span className="font-black text-xs text-black">{f.name} <span className="font-medium opacity-50">@{f.company || 'Unknown'}</span></span>
+                                   <span className="text-[8px] opacity-40">{f.createdAt?.toDate?.()?.toLocaleString() || 'Recent'}</span>
+                                </div>
+                                <p className="text-sm text-brand-primary/80 leading-relaxed italic">"{f.content}"</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="reveal">
+                  <form onSubmit={handleSubmitFeedback} className="window-frame bg-brand-cream/30 p-8 md:p-12">
+                     <div className="window-header mb-8">
+                        <div className="dot-red"></div>
+                        <div className="dot-yellow"></div>
+                        <div className="dot-green"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-30">feedback_submission.form</span>
+                     </div>
+                     
+                     <div className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Name (Optional)</label>
+                            <input 
+                              type="text" 
+                              value={feedbackName}
+                              onChange={(e) => setFeedbackName(e.target.value)}
+                              placeholder="성함"
+                              className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Company (Optional)</label>
+                            <input 
+                              type="text" 
+                              value={feedbackCompany}
+                              onChange={(e) => setFeedbackCompany(e.target.value)}
+                              placeholder="회사명"
+                              className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest block mb-3 text-brand-rust">Message</label>
+                          <textarea 
+                            value={feedbackContent}
+                            onChange={(e) => setFeedbackContent(e.target.value)}
+                            placeholder="피드백이나 협업 제안을 자유롭게 남겨주세요."
+                            className="w-full bg-white border border-black p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-sage transition-all font-sans font-medium h-48 resize-none"
+                            required
+                          />
+                        </div>
+                        
+                        <button 
+                          type="submit"
+                          disabled={isSubmittingFeedback}
+                          className={`w-full py-4 border border-black rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                            feedbackSuccess 
+                              ? 'bg-brand-yellow text-black' 
+                              : 'bg-black text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none'
+                          }`}
+                        >
+                          {isSubmittingFeedback ? "Sending..." : feedbackSuccess ? "Thank you!" : "Send Feedback"}
+                        </button>
+                     </div>
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
 
@@ -1458,6 +1492,34 @@ export default function App() {
         </div>
       </div>
     </footer>
+
+    {/* Feedback Success Notification */}
+    <AnimatePresence>
+      {feedbackSuccess && (
+        <motion.div
+          initial={{ opacity: 0, y: -100, x: '-50%' }}
+          animate={{ opacity: 1, y: 32, x: '-50%' }}
+          exit={{ opacity: 0, y: -100, x: '-50%' }}
+          className="fixed top-0 left-1/2 z-[100] w-[90%] max-w-sm"
+        >
+          <div className="bg-white border-2 border-black p-6 rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4">
+            <div className="w-12 h-12 bg-brand-sage rounded-full flex items-center justify-center shrink-0">
+              <i className="fas fa-check text-black"></i>
+            </div>
+            <div>
+              <h4 className="font-black text-sm uppercase tracking-widest mb-1">Success!</h4>
+              <p className="text-xs font-medium text-brand-primary/60">소중한 의견 감사합니다!</p>
+            </div>
+            <button 
+              onClick={() => setFeedbackSuccess(false)}
+              className="ml-auto opacity-30 hover:opacity-100 transition-opacity"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* Top Button */}
     <motion.button
